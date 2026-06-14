@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # CheckMate - Registration Validator
 
 ## Descriere
@@ -473,7 +472,7 @@ Pentru realizarea si imbunatatirea testelor unitare am folosit ChatGPT ca tool A
 
 Raportul se afla aici: [Raport AI](docs/raport_ai.md).
 
-## Demo si prezentare
+## Prezentare
 
 https://1drv.ms/p/c/5dcd896d88d7bfe2/IQBj1sZYSDyFTrLLV20xtcgiAYVKnjg6ukiDiHoFSN_ypjo?e=kAkK55
 
