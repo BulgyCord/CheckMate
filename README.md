@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # CheckMate - Registration Validator
 
 ## Descriere
@@ -500,3 +501,6 @@ Proiectul CheckMate implementeaza o componenta de validare pentru un formular de
 Rezultatul de `77 passed` confirma ca toate testele automate trec. Raportul de coverage arata ca logica principala din `RegistrationValidator` este acoperita 100%. Mutation testing-ul a evidentiat mutanti supravietuitori, iar dupa analiza acestora au fost adaugate teste suplimentare care au crescut numarul de mutanti omorati de la 100 la 119 si au redus numarul de mutanti supravietuitori de la 36 la 17.
 
 Astfel, proiectul nu se limiteaza doar la obtinerea unui procent mare de coverage, ci demonstreaza si imbunatatirea efectiva a calitatii testelor prin analiza mutantilor.
+=======
+# CheckMate
+>>>>>>> be68c96c7e717ee534574d854c7fd8708e0e3e35
