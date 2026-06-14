@@ -1,0 +1,368 @@
+import pytest
+
+from registration_validator import RegistrationValidator
+
+
+@pytest.fixture
+def validator():
+    return RegistrationValidator(existing_usernames={"admin", "Mario"})
+
+
+# ============================================================
+# EXTRA INITIALIZATION / HELPER TESTS
+# ============================================================
+
+def test_validator_without_existing_usernames():
+    validator = RegistrationValidator()
+
+    assert validator.validate_username("admin") is True
+
+
+def test_is_username_taken_with_non_string_returns_false(validator):
+    assert validator.is_username_taken(123) is False
+
+
+def test_is_common_password_with_non_string_returns_false(validator):
+    assert validator.is_common_password(123) is False
+
+
+# ============================================================
+# USERNAME TESTS
+# ============================================================
+
+def test_username_valid(validator):
+    assert validator.validate_username("andrei_123") is True
+
+
+def test_username_not_string_invalid(validator):
+    assert validator.validate_username(123) is False
+    assert "Username ul trebuie sa fie de forma string" in validator.get_username_errors(123)
+
+
+def test_username_with_2_characters_invalid(validator):
+    assert validator.validate_username("ab") is False
+
+
+def test_username_with_3_characters_valid(validator):
+    assert validator.validate_username("abc") is True
+
+
+def test_username_with_20_characters_valid(validator):
+    username = "a" * 20
+    assert validator.validate_username(username) is True
+
+
+def test_username_with_21_characters_invalid(validator):
+    username = "a" * 21
+    assert validator.validate_username(username) is False
+
+
+def test_username_must_start_with_letter(validator):
+    assert validator.validate_username("1alex") is False
+
+
+def test_username_allows_underscore(validator):
+    assert validator.validate_username("alex_test") is True
+
+
+def test_username_rejects_invalid_characters(validator):
+    assert validator.validate_username("alex-test") is False
+    assert validator.validate_username("alex@test") is False
+
+
+def test_username_already_taken_invalid(validator):
+    assert validator.validate_username("admin") is False
+
+
+def test_username_taken_case_insensitive(validator):
+    assert validator.validate_username("mario") is False
+    assert validator.validate_username("MARIO") is False
+
+
+# ============================================================
+# EMAIL TESTS
+# ============================================================
+
+def test_email_valid(validator):
+    assert validator.validate_email("student@example.com") is True
+
+
+def test_email_not_string_invalid(validator):
+    assert validator.validate_email(None) is False
+    assert "Email ul trebuie sa fie de forma string" in validator.get_email_errors(None)
+
+
+def test_email_without_at_invalid(validator):
+    assert validator.validate_email("studentexample.com") is False
+
+
+def test_email_without_extension_invalid(validator):
+    assert validator.validate_email("student@example") is False
+
+
+def test_email_with_spaces_invalid(validator):
+    assert validator.validate_email("student @example.com") is False
+
+
+def test_email_with_subdomain_valid(validator):
+    assert validator.validate_email("student@mail.example.com") is True
+
+
+# ============================================================
+# PASSWORD TESTS
+# ============================================================
+
+def test_password_valid(validator):
+    assert validator.validate_password("Aa1!bb") is True
+
+
+def test_password_not_string_invalid(validator):
+    assert validator.validate_password(["Aa1!bb"]) is False
+    assert "Parola trebuie sa fie de forma string" in validator.get_password_errors(["Aa1!bb"])
+
+
+def test_password_with_5_characters_invalid(validator):
+    assert validator.validate_password("Aa1!b") is False
+
+
+def test_password_with_6_characters_valid(validator):
+    assert validator.validate_password("Aa1!bb") is True
+
+
+def test_password_with_20_characters_valid(validator):
+    password = "Aa1!" + "b" * 16
+    assert len(password) == 20
+    assert validator.validate_password(password) is True
+
+
+def test_password_with_21_characters_invalid(validator):
+    password = "Aa1!" + "b" * 17
+    assert len(password) == 21
+    assert validator.validate_password(password) is False
+
+
+def test_password_without_lowercase_invalid(validator):
+    assert validator.validate_password("AA1!BB") is False
+
+
+def test_password_without_uppercase_invalid(validator):
+    assert validator.validate_password("aa1!bb") is False
+
+
+def test_password_without_digit_invalid(validator):
+    assert validator.validate_password("Aaaa!bb") is False
+
+
+def test_password_without_special_character_invalid(validator):
+    assert validator.validate_password("Aa1234") is False
+
+
+def test_password_with_space_invalid(validator):
+    assert validator.validate_password("Aa1! bb") is False
+
+
+def test_common_password_invalid(validator):
+    assert validator.validate_password("Pass@123") is False
+
+
+def test_common_password_check_case_insensitive(validator):
+    assert validator.is_common_password("PASS@123") is True
+
+
+@pytest.mark.parametrize("common_password", [
+    "123456",
+    "admin",
+    "12345678",
+    "123456789",
+    "password",
+    "Aa123456",
+    "1234567890",
+    "Pass@123",
+    "admin123",
+    "1234567",
+    "qwerty123",
+    "ParolaCeaMaiTare123!",
+    "Parola",
+    "Parola123",
+])
+def test_all_default_common_passwords_are_detected(validator, common_password):
+    assert validator.is_common_password(common_password) is True
+
+
+def test_uppercase_x_is_not_treated_as_special_character(validator):
+    assert validator.validate_password("abX123") is False
+
+
+def test_password_errors_returns_multiple_errors(validator):
+    errors = validator.get_password_errors("ana")
+
+    assert "Parola trebuie sa aiba cel putin 6 caractere" in errors
+    assert "Parola trebuie sa contina cel putin o litera mare" in errors
+    assert "Parola trebuie sa contina cel putin o cifra" in errors
+    assert "Parola trebuie sa contina cel putin un caracter special" in errors
+
+
+# ============================================================
+# PASSWORD STRENGTH TESTS
+# ============================================================
+
+def test_password_strength_invalid_type_zero(validator):
+    assert validator.password_strength_score(None) == 0
+
+
+def test_password_strength_weak_short_password(validator):
+    assert validator.password_strength_score("abc") == 0
+    assert validator.password_strength_label("abc") == "slaba"
+
+
+def test_password_strength_weak_length_only(validator):
+    assert validator.password_strength_score("abcdefgh") == 1
+    assert validator.password_strength_label("abcdefgh") == "slaba"
+
+
+def test_password_strength_medium_upper_lower_digit(validator):
+    assert validator.password_strength_score("Abcdefgh1") == 3
+    assert validator.password_strength_label("Abcdefgh1") == "medie"
+
+
+def test_password_strength_strong_valid_password(validator):
+    assert validator.password_strength_score("Abcdefgh1!") == 4
+    assert validator.password_strength_label("Abcdefgh1!") == "puternica"
+
+
+def test_password_strength_strong_long_password(validator):
+    assert validator.password_strength_score("Abcdefgh123!") == 5
+    assert validator.password_strength_label("Abcdefgh123!") == "puternica"
+
+
+def test_common_password_strength_limited_to_one(validator):
+    assert validator.password_strength_score("Pass@123") == 1
+    assert validator.password_strength_label("Pass@123") == "slaba"
+
+
+# ============================================================
+# AGE TESTS
+# ============================================================
+
+def test_age_17_invalid(validator):
+    assert validator.validate_age(17) is False
+
+
+def test_age_18_valid(validator):
+    assert validator.validate_age(18) is True
+
+
+def test_age_123_valid(validator):
+    assert validator.validate_age(123) is True
+
+
+def test_age_124_invalid(validator):
+    assert validator.validate_age(124) is False
+
+
+def test_age_string_invalid(validator):
+    assert validator.validate_age("18") is False
+
+
+def test_age_float_invalid(validator):
+    assert validator.validate_age(18.5) is False
+
+
+def test_age_boolean_invalid(validator):
+    assert validator.validate_age(True) is False
+
+
+# ============================================================
+# TERMS TESTS
+# ============================================================
+
+def test_terms_true_valid(validator):
+    assert validator.validate_terms(True) is True
+
+
+def test_terms_false_invalid(validator):
+    assert validator.validate_terms(False) is False
+
+
+def test_terms_string_true_invalid(validator):
+    assert validator.validate_terms("True") is False
+
+
+# ============================================================
+# FULL REGISTRATION TESTS
+# ============================================================
+
+def test_registration_valid(validator):
+    assert validator.validate_registration(
+        username="andrei_123",
+        email="andrei@example.com",
+        password="Aa1!bb",
+        age=20,
+        accepted_terms=True,
+    ) is True
+
+
+def test_registration_invalid_username(validator):
+    assert validator.validate_registration(
+        username="admin",
+        email="andrei@example.com",
+        password="Aa1!bb",
+        age=20,
+        accepted_terms=True,
+    ) is False
+
+
+def test_registration_invalid_email(validator):
+    assert validator.validate_registration(
+        username="andrei_123",
+        email="andrei.example.com",
+        password="Aa1!bb",
+        age=20,
+        accepted_terms=True,
+    ) is False
+
+
+def test_registration_invalid_password(validator):
+    assert validator.validate_registration(
+        username="andrei_123",
+        email="andrei@example.com",
+        password="ana",
+        age=20,
+        accepted_terms=True,
+    ) is False
+
+
+def test_registration_invalid_age(validator):
+    assert validator.validate_registration(
+        username="andrei_123",
+        email="andrei@example.com",
+        password="Aa1!bb",
+        age=17,
+        accepted_terms=True,
+    ) is False
+
+
+def test_registration_without_terms_invalid(validator):
+    assert validator.validate_registration(
+        username="andrei_123",
+        email="andrei@example.com",
+        password="Aa1!bb",
+        age=20,
+        accepted_terms=False,
+    ) is False
+
+
+def test_registration_errors_contains_all_invalid_fields(validator):
+    errors = validator.get_registration_errors(
+        username="ad",
+        email="wrong-email",
+        password="ana",
+        age=15,
+        accepted_terms=False,
+    )
+
+    assert "username" in errors
+    assert "email" in errors
+    assert "password" in errors
+    assert "age" in errors
+    assert "accepted_terms" in errors
